@@ -5,7 +5,7 @@ This example shows a basic example of how to use human-in-the-loop in a Next.js 
 Right now it only uses a synchronous approach without streaming and storing in an in-memory DB.
 
 This folder also includes a Hampton hobby farm control center demo that shows how multiple agents can collaborate inside a simple
-Next.js site.
+Next.js site while saving every conversation turn into an OpenAI vector store for long-lived memory.
 
 ## Run the example
 

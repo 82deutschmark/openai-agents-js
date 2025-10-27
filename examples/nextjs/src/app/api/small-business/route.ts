@@ -4,7 +4,11 @@ import { randomUUID } from 'node:crypto';
 import type { AgentInputItem } from '@openai/agents';
 import { Runner } from '@openai/agents';
 
-import { hobbyFarmAdvisorAgent } from '@/agents';
+import { createHobbyFarmAdvisorAgent } from '@/agents';
+import {
+  getConversationMemory,
+  persistConversationHistory,
+} from '@/lib/conversation-memory';
 
 function generateConversationId() {
   return `biz_${randomUUID().replace(/-/g, '').slice(0, 24)}`;
@@ -20,16 +24,28 @@ export async function POST(req: NextRequest) {
       conversationId = generateConversationId();
     }
 
+    const existingMemory = await getConversationMemory(conversationId);
+    const hobbyFarmAdvisorAgent = createHobbyFarmAdvisorAgent({
+      memoryVectorStoreId: existingMemory?.vectorStoreId,
+    });
+
     const runner = new Runner({
       groupId: conversationId,
     });
 
     const result = await runner.run(hobbyFarmAdvisorAgent, messages);
 
+    const updatedMemory = await persistConversationHistory({
+      conversationId,
+      history: result.history,
+      existingRecord: existingMemory,
+    });
+
     return NextResponse.json({
       response: result.finalOutput,
       history: result.history,
       conversationId,
+      memoryVectorStoreId: updatedMemory?.vectorStoreId,
     });
   } catch (error) {
     console.error(error);

@@ -1,4 +1,4 @@
-import { Agent, tool } from '@openai/agents';
+import { Agent, fileSearchTool, tool } from '@openai/agents';
 import z from 'zod';
 
 const getWeather = tool({
@@ -287,9 +287,36 @@ const fieldAndMarketAdvisor = new Agent({
   tools: [getFieldAndMarketCalendar],
 });
 
-export const hobbyFarmAdvisorAgent = Agent.create({
-  name: 'Hobby Farm Control Center',
-  instructions:
-    'You are the general manager helping a solo owner run a small hobby farm in Hampton, CT with laying hens and catnip beds. Listen for what the farmer is juggling, delegate to the finance, flock operations, or field and market specialists, then stitch their input into one calm plan. Close with a short checklist the farmer can follow before the next chore block.',
-  handoffs: [farmFinanceAdvisor, flockOperationsAdvisor, fieldAndMarketAdvisor],
-});
+const FARM_MEMORY_TOOL_NAME = 'farm_memory_search';
+
+export function createHobbyFarmAdvisorAgent({
+  memoryVectorStoreId,
+}: { memoryVectorStoreId?: string } = {}) {
+  const memoryTool = memoryVectorStoreId
+    ? fileSearchTool(memoryVectorStoreId, {
+        name: FARM_MEMORY_TOOL_NAME,
+        maxNumResults: 8,
+        includeSearchResults: true,
+      })
+    : undefined;
+
+  const instructions = [
+    'You are the general manager helping a solo owner run a small hobby farm in Hampton, CT with laying hens and catnip beds.',
+    'Listen for what the farmer is juggling, delegate to the finance, flock operations, or field and market specialists, then stitch their input into one calm plan.',
+    memoryTool
+      ? `When earlier Hampton Hollow chats might contain commitments, use the ${FARM_MEMORY_TOOL_NAME} tool to recall and cite the most relevant notes before responding.`
+      : 'We archive each conversation turn after you reply so later sessions can look back on the details—summarize commitments clearly.',
+    'Close with a short checklist the farmer can follow before the next chore block.',
+  ].join(' ');
+
+  return Agent.create({
+    name: 'Hobby Farm Control Center',
+    instructions,
+    ...(memoryTool ? { tools: [memoryTool] } : {}),
+    handoffs: [
+      farmFinanceAdvisor,
+      flockOperationsAdvisor,
+      fieldAndMarketAdvisor,
+    ],
+  });
+}

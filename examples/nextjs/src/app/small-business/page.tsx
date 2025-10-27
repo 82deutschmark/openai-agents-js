@@ -121,6 +121,11 @@ export default function SmallBusinessPage() {
             snapshot before handing back simple steps you can finish between
             chores.
           </p>
+          <p className="mt-4 max-w-3xl text-sm text-slate-300">
+            Every message you trade with the crew is saved to a private OpenAI
+            vector store so future sessions remember promised deliveries, market
+            prep, and any flock follow-ups.
+          </p>
         </section>
 
         <section className="grid gap-6 md:grid-cols-3">
