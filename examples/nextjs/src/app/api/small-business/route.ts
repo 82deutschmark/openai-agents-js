@@ -8,6 +8,7 @@ import { createHobbyFarmAdvisorAgent } from '@/agents';
 import {
   getConversationMemory,
   persistConversationHistory,
+  SHARED_VECTOR_STORE_ID,
 } from '@/lib/conversation-memory';
 
 function generateConversationId() {
@@ -25,8 +26,11 @@ export async function POST(req: NextRequest) {
     }
 
     const existingMemory = await getConversationMemory(conversationId);
+    const memoryVectorStoreId =
+      existingMemory?.vectorStoreId ?? SHARED_VECTOR_STORE_ID;
+
     const hobbyFarmAdvisorAgent = createHobbyFarmAdvisorAgent({
-      memoryVectorStoreId: existingMemory?.vectorStoreId,
+      memoryVectorStoreId,
     });
 
     const runner = new Runner({
@@ -45,7 +49,7 @@ export async function POST(req: NextRequest) {
       response: result.finalOutput,
       history: result.history,
       conversationId,
-      memoryVectorStoreId: updatedMemory?.vectorStoreId,
+      memoryVectorStoreId: updatedMemory?.vectorStoreId ?? memoryVectorStoreId,
     });
   } catch (error) {
     console.error(error);

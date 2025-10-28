@@ -95,7 +95,7 @@ export function History({ history }: HistoryProps) {
 
   return (
     <div
-      className="overflow-y-scroll pl-4 flex-1 rounded-lg bg-white space-y-4"
+      className="flex-1 space-y-2 overflow-y-auto px-4 py-4"
       id="chatHistory"
     >
       {processedItems.map((item, idx) => {
