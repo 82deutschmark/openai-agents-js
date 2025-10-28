@@ -10,6 +10,9 @@ export type ConversationMemoryRecord = {
 
 const memoryDb = new Database<ConversationMemoryRecord>();
 
+export const SHARED_VECTOR_STORE_ID =
+  process.env.OPENAI_VECTOR_STORE_ID ?? 'vs_68fffb393e7c81918c53643ecf212d0f';
+
 let client: OpenAI | undefined;
 
 function getClient() {
@@ -109,7 +112,16 @@ function formatHistoryItems(items: AgentInputItem[]): string[] {
 export async function getConversationMemory(
   conversationId: string,
 ): Promise<ConversationMemoryRecord | undefined> {
-  return memoryDb.get(conversationId);
+  const record = await memoryDb.get(conversationId);
+
+  if (record) {
+    return record;
+  }
+
+  return {
+    vectorStoreId: SHARED_VECTOR_STORE_ID,
+    storedItemCount: 0,
+  };
 }
 
 export async function persistConversationHistory({
@@ -121,7 +133,11 @@ export async function persistConversationHistory({
   history: AgentInputItem[];
   existingRecord?: ConversationMemoryRecord | null;
 }): Promise<ConversationMemoryRecord | undefined> {
-  let record = existingRecord ?? (await memoryDb.get(conversationId));
+  let record = existingRecord ??
+    (await memoryDb.get(conversationId)) ?? {
+      vectorStoreId: SHARED_VECTOR_STORE_ID,
+      storedItemCount: 0,
+    };
   const previouslyStored = record?.storedItemCount ?? 0;
   const newItems = history.slice(previouslyStored);
 
@@ -149,19 +165,6 @@ export async function persistConversationHistory({
       return updated;
     }
     return record ?? undefined;
-  }
-
-  if (!record) {
-    const vectorStore = await getClient().vectorStores.create({
-      name: `hampton-hollow-${conversationId}`,
-      metadata: {
-        conversationId,
-      },
-    });
-    record = {
-      vectorStoreId: vectorStore.id,
-      storedItemCount: 0,
-    };
   }
 
   const fileName = `${conversationId}-${Date.now()}.txt`;

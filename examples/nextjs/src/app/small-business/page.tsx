@@ -7,44 +7,105 @@ import ArrowUpIcon from '@/components/icons/ArrowUpIcon';
 import { History } from '@/components/History';
 import { Button } from '@/components/ui/Button';
 
-type Specialist = {
+type Advisor = {
   name: string;
   focus: string;
   summary: string;
-  suggestions: string[];
+  prompts: string[];
 };
 
-const specialists: Specialist[] = [
+type Snapshot = {
+  title: string;
+  description: string;
+  items: { label: string; value: string }[];
+};
+
+const advisors: Advisor[] = [
   {
-    name: 'Farm Finance Advisor',
-    focus: 'Egg and catnip cash flow.',
+    name: 'Service Logistics Lead',
+    focus: 'Coordinating liturgy, volunteers, and sanctuary setup.',
     summary:
-      'Keeps tabs on CSA subscriptions, wholesale catnip orders, and cash for unexpected flock care.',
-    suggestions: [
-      '“Can I cover the new irrigation kit after this week’s egg deliveries?”',
-      '“How much catnip should go to wholesale versus the market?”',
+      'Reviews the latest catechism outline, confirms communion prep, and balances greeters, readers, and hospitality teams.',
+    prompts: [
+      '“Outline Sunday’s catechism workshop agenda around the Apostles’ Creed.”',
+      '“Draft the volunteer briefing for the 9AM liturgy.”',
     ],
   },
   {
-    name: 'Flock Operations Advisor',
-    focus: 'Daily coop chores and hen health.',
+    name: 'Pastoral Care & Outreach',
+    focus: 'Following up with members and community partners.',
     summary:
-      'Flags molt recoveries, feed usage, and coop maintenance so the flock stays productive.',
-    suggestions: [
-      '“What chores should I tackle before the heat wave?”',
-      '“Are the hens laying enough to open more CSA slots?”',
+      'Surfaces pastoral check-ins, prayer requests, and donor updates so nothing slips past a busy founding pastor.',
+    prompts: [
+      '“Help me respond to a catechism question from the Open Fellowship site.”',
+      '“Summarize who needs a check-in call this week.”',
     ],
   },
   {
-    name: 'Field & Market Advisor',
-    focus: 'Catnip beds and customer outreach.',
+    name: 'Farm & Grounds Steward',
+    focus: 'Hobby farm chores, feed runs, and market prep.',
     summary:
-      'Lines up harvest timing with Hampton markets and keeps neighbors excited for fresh eggs.',
-    suggestions: [
-      '“Help me plan bundles for the Quiet Corner fair.”',
-      '“What should I post after tonight’s coop check?”',
+      'Balances chicken coop duties with herb bed care, integrates weather data, and keeps Hampton neighbors stocked with eggs.',
+    prompts: [
+      '“Create a task list that covers catechism night setup and hen house cleaning.”',
+      '“What do I post to highlight the farm partnership after service?”',
     ],
   },
+];
+
+const snapshots: Snapshot[] = [
+  {
+    title: 'This week at Open Fellowship',
+    description:
+      'Key notes to keep Sunday’s service and catechism class moving smoothly.',
+    items: [
+      {
+        label: 'Catechism focus',
+        value: 'Chapter 4 · The Apostles’ Creed deep dive',
+      },
+      {
+        label: 'Volunteers needed',
+        value: '3 for greeting · 2 for hospitality table',
+      },
+      {
+        label: 'Announcements',
+        value: 'Farm share signups close Friday at noon',
+      },
+    ],
+  },
+  {
+    title: 'Pastoral & member care',
+    description: 'Blend agent memory with your own notes to stay personal.',
+    items: [
+      {
+        label: 'Follow-up',
+        value: 'Tasha (new member) requested baptism prep',
+      },
+      { label: 'Prayer queue', value: 'Garcia family recovering from surgery' },
+      {
+        label: 'Giving update',
+        value: 'Cathedral partners pledged $1.2k/month',
+      },
+    ],
+  },
+  {
+    title: 'Hobby farm dashboard',
+    description: 'Quick glance at the hens, beds, and market commitments.',
+    items: [
+      { label: 'Egg delivery', value: '24 dozen promised to Quiet Corner CSA' },
+      { label: 'Coop status', value: 'Deep clean scheduled for Thursday PM' },
+      {
+        label: 'Field note',
+        value: 'Catnip rows ready for light harvest Saturday',
+      },
+    ],
+  },
+];
+
+const quickPrompts = [
+  'Draft a combined update for Sunday’s bulletin and the farm email.',
+  'List three volunteer asks I should text to our core team tonight.',
+  'Plan tomorrow’s farm chores around evening catechism class prep.',
 ];
 
 export default function SmallBusinessPage() {
@@ -52,18 +113,22 @@ export default function SmallBusinessPage() {
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [message, setMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [memoryVectorStoreId, setMemoryVectorStoreId] = useState<string | null>(
+    null,
+  );
 
-  async function handleSend() {
-    if (!message.trim()) {
+  async function sendMessage(text: string) {
+    const trimmed = text.trim();
+
+    if (!trimmed) {
       return;
     }
 
-    const text = message;
     setMessage('');
 
     const messages: AgentInputItem[] = [
       ...history,
-      { type: 'message', role: 'user', content: text },
+      { type: 'message', role: 'user', content: trimmed },
     ];
 
     setHistory([
@@ -95,6 +160,10 @@ export default function SmallBusinessPage() {
       if (data.history) {
         setHistory(data.history);
       }
+
+      if (data.memoryVectorStoreId) {
+        setMemoryVectorStoreId(data.memoryVectorStoreId);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -102,108 +171,194 @@ export default function SmallBusinessPage() {
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    await handleSend();
+    await sendMessage(message);
+  }
+
+  async function handleQuickPrompt(prompt: string) {
+    await sendMessage(prompt);
   }
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <div className="mx-auto flex w-full max-w-6xl flex-col gap-12 px-4 pb-16 pt-12">
-        <section className="rounded-4xl bg-slate-900 p-10 text-white shadow-xl">
-          <p className="text-sm uppercase tracking-[0.35em] text-slate-300">
-            Hampton Hollow Helpers
-          </p>
-          <h1 className="mt-4 text-3xl font-semibold md:text-4xl">
-            Run your hobby farm with a team of focused AI specialists.
-          </h1>
-          <p className="mt-4 max-w-3xl text-lg text-slate-200">
-            Ask once and let the farm manager pull in finance, flock, and field
-            experts. Each specialist references the latest Hampton Hollow
-            snapshot before handing back simple steps you can finish between
-            chores.
-          </p>
-          <p className="mt-4 max-w-3xl text-sm text-slate-300">
-            Every message you trade with the crew is saved to a private OpenAI
-            vector store so future sessions remember promised deliveries, market
-            prep, and any flock follow-ups.
-          </p>
+    <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 pb-20">
+      <div className="mx-auto flex w-full max-w-6xl flex-col gap-12 px-4 pt-12">
+        <section className="relative overflow-hidden rounded-4xl border border-slate-800 bg-slate-900/60 p-10 text-white shadow-2xl">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(91,126,255,0.35),transparent_60%)]" />
+          <div className="relative flex flex-col gap-6">
+            <div className="flex flex-wrap items-center gap-3 text-sm font-medium uppercase tracking-[0.3em] text-indigo-300/80">
+              <span>Open Fellowship</span>
+              <span className="h-3 w-px bg-indigo-300/40" />
+              <span>Catechism & Farm Ops</span>
+            </div>
+            <h1 className="text-3xl font-semibold md:text-4xl">
+              Guide your church and hobby farm with a memory-backed agent crew.
+            </h1>
+            <p className="max-w-3xl text-lg text-slate-200">
+              Give one instruction and the manager agent will recruit the right
+              specialist—service logistics, pastoral care, or farm & grounds.
+              Every response is grounded in the Open Fellowship knowledge base
+              you store at{' '}
+              <a
+                href="https://openfellowship.faith/catechism"
+                className="font-semibold text-indigo-200 underline decoration-dotted underline-offset-2"
+              >
+                openfellowship.faith/catechism
+              </a>
+              .
+            </p>
+            <p className="max-w-3xl text-sm text-slate-300">
+              Conversation history is uploaded after every turn to your shared
+              OpenAI vector store so the agents remember parishioner updates,
+              catechism threads, and coop chores across sessions.
+            </p>
+          </div>
         </section>
 
         <section className="grid gap-6 md:grid-cols-3">
-          {specialists.map((specialist) => (
+          {advisors.map((advisor) => (
             <article
-              key={specialist.name}
-              className="flex h-full flex-col gap-4 rounded-3xl border border-slate-200 bg-white/80 p-6 shadow-sm backdrop-blur"
+              key={advisor.name}
+              className="flex h-full flex-col gap-4 rounded-3xl border border-slate-800/80 bg-slate-900/60 p-6 text-slate-100 shadow-lg backdrop-blur"
             >
-              <div>
-                <h2 className="text-xl font-semibold text-slate-900">
-                  {specialist.name}
+              <div className="space-y-2">
+                <h2 className="text-xl font-semibold text-white">
+                  {advisor.name}
                 </h2>
-                <p className="text-sm font-medium uppercase tracking-wide text-slate-500">
-                  {specialist.focus}
+                <p className="text-sm font-medium uppercase tracking-wide text-indigo-200/80">
+                  {advisor.focus}
                 </p>
+                <p className="text-sm text-slate-300">{advisor.summary}</p>
               </div>
-              <p className="text-sm text-slate-600">{specialist.summary}</p>
               <div className="mt-auto space-y-2">
-                {specialist.suggestions.map((suggestion) => (
-                  <p
-                    key={suggestion}
-                    className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2 text-sm text-slate-700"
+                {advisor.prompts.map((prompt) => (
+                  <button
+                    key={prompt}
+                    type="button"
+                    onClick={() => handleQuickPrompt(prompt)}
+                    className="w-full rounded-2xl border border-indigo-400/30 bg-indigo-500/10 px-4 py-2 text-left text-sm text-indigo-100 transition hover:border-indigo-300/60 hover:bg-indigo-400/20"
+                    disabled={isLoading}
                   >
-                    {suggestion}
-                  </p>
+                    {prompt}
+                  </button>
                 ))}
               </div>
             </article>
           ))}
         </section>
 
-        <section className="rounded-4xl border border-slate-200 bg-white p-8 shadow-xl">
-          <div className="flex flex-col gap-6">
-            <div>
-              <h2 className="text-2xl font-semibold text-slate-900">
-                Ask the farm control center
-              </h2>
-              <p className="text-sm text-slate-600">
-                Share what you need help with—egg deliveries, coop upkeep, or
-                catnip markets—and the manager will pull in the right expert.
-              </p>
-            </div>
+        <section className="grid gap-6 lg:grid-cols-3">
+          {snapshots.map((snapshot) => (
+            <article
+              key={snapshot.title}
+              className="flex flex-col gap-4 rounded-3xl border border-slate-800 bg-slate-900/70 p-6 text-slate-100 shadow-lg"
+            >
+              <div>
+                <h3 className="text-lg font-semibold text-white">
+                  {snapshot.title}
+                </h3>
+                <p className="mt-1 text-sm text-slate-300">
+                  {snapshot.description}
+                </p>
+              </div>
+              <dl className="space-y-3 text-sm">
+                {snapshot.items.map((item) => (
+                  <div
+                    key={item.label}
+                    className="flex flex-col gap-1 rounded-2xl border border-slate-800/80 bg-slate-900/60 px-4 py-3"
+                  >
+                    <dt className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+                      {item.label}
+                    </dt>
+                    <dd className="text-slate-100">{item.value}</dd>
+                  </div>
+                ))}
+              </dl>
+            </article>
+          ))}
+        </section>
 
-            <div className="flex h-[520px] flex-col gap-4">
-              <div className="flex flex-1 flex-col overflow-hidden rounded-3xl border border-slate-200 bg-slate-50">
+        <section className="rounded-4xl border border-slate-800 bg-slate-900/80 p-8 text-slate-100 shadow-2xl">
+          <div className="flex flex-col gap-6">
+            <header className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+              <div>
+                <h2 className="text-2xl font-semibold text-white">
+                  Open Fellowship command center
+                </h2>
+                <p className="text-sm text-slate-300">
+                  Ask for ministry follow-ups or farm logistics and the agent
+                  team will coordinate a plan you can act on immediately.
+                </p>
+              </div>
+              <div className="rounded-3xl border border-indigo-400/30 bg-indigo-500/10 px-4 py-3 text-xs uppercase tracking-[0.2em] text-indigo-100">
+                Connected store:{' '}
+                <span className="font-semibold">
+                  {memoryVectorStoreId ?? 'vs_68fffb393e7c81918c53643ecf212d0f'}
+                </span>
+              </div>
+            </header>
+
+            <div className="grid gap-4 lg:grid-cols-[2fr_1fr]">
+              <div className="flex h-[520px] flex-col overflow-hidden rounded-3xl border border-slate-800 bg-slate-950/80">
                 {history.length > 0 ? (
                   <History history={history} />
                 ) : (
-                  <div className="flex flex-1 items-center justify-center px-6 text-center text-slate-500">
-                    Ask the crew what’s next for the hens or catnip and they’ll
-                    build the plan together.
+                  <div className="flex flex-1 flex-col items-center justify-center gap-2 px-6 text-center text-slate-400">
+                    <p>
+                      Start by asking for help with catechism prep, volunteer
+                      coordination, or tonight’s coop routine. The agents will
+                      remember whatever you decide.
+                    </p>
                   </div>
                 )}
               </div>
 
-              <form
-                onSubmit={handleSubmit}
-                className="flex items-center gap-3 rounded-3xl border border-slate-200 bg-white p-3 shadow-sm"
-              >
-                <input
-                  type="text"
-                  value={message}
-                  onChange={(event) => setMessage(event.target.value)}
-                  placeholder="Ask for help balancing egg runs, chores, or market prep..."
-                  className="flex-1 border-none bg-transparent text-base text-slate-900 outline-none placeholder:text-slate-400"
-                  disabled={isLoading}
-                />
-                <Button
-                  type="submit"
-                  variant="primary"
-                  size="icon"
-                  disabled={isLoading || !message.trim()}
-                  aria-label="Send message"
-                >
-                  <ArrowUpIcon />
-                </Button>
-              </form>
+              <aside className="flex flex-col gap-3 rounded-3xl border border-slate-800 bg-slate-950/60 p-4 text-sm text-slate-200">
+                <h3 className="text-sm font-semibold uppercase tracking-wide text-indigo-100">
+                  Quick prompts
+                </h3>
+                <p className="text-slate-400">
+                  Send one tap instructions when you need to bounce between the
+                  sanctuary and the barn.
+                </p>
+                <div className="space-y-2">
+                  {quickPrompts.map((prompt) => (
+                    <button
+                      key={prompt}
+                      type="button"
+                      onClick={() => handleQuickPrompt(prompt)}
+                      className="w-full rounded-2xl border border-slate-800 bg-slate-900/70 px-4 py-3 text-left text-slate-100 transition hover:border-indigo-400/50 hover:bg-indigo-500/10"
+                      disabled={isLoading}
+                    >
+                      {prompt}
+                    </button>
+                  ))}
+                </div>
+              </aside>
             </div>
+
+            <form
+              onSubmit={handleSubmit}
+              className="flex items-center gap-3 rounded-3xl border border-slate-800 bg-slate-950/80 p-4 shadow-inner"
+            >
+              <input
+                type="text"
+                value={message}
+                onChange={(event) => setMessage(event.target.value)}
+                placeholder="Ask for catechism, pastoral, or farm support..."
+                className="flex-1 border-none bg-transparent text-base text-slate-100 placeholder:text-slate-500 focus:outline-none"
+                disabled={isLoading}
+                aria-label="Message the Open Fellowship agents"
+              />
+              <Button
+                type="submit"
+                variant="primary"
+                size="icon"
+                disabled={isLoading || !message.trim()}
+                aria-label="Send message"
+                className="bg-indigo-500 text-white hover:bg-indigo-400 disabled:opacity-70"
+              >
+                <ArrowUpIcon />
+              </Button>
+            </form>
           </div>
         </section>
       </div>
